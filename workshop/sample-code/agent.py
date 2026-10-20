@@ -1,4 +1,4 @@
-"""Sparkles - The Cupcake ordering agent"""
+"""Arepa Lab - The arepa ordering agent."""
 
 import asyncio
 import os
@@ -17,10 +17,10 @@ async def main() -> None:
         base_url=os.environ["FOUNDRY_ENDPOINT"],
     )
 
-    # 3. Connect to the Cupcake Store MCP server
+    # 3. Connect to the Arepa Lab MCP server
     mcp_tool = MCPStreamableHTTPTool(
-        name="cupcake-store",
-        url="https://ca-cupcake-mcp.jollyplant-ed217b0d.eastus.azurecontainerapps.io/mcp/",
+        name="arepa-lab",
+        url=os.environ.get("MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
     )
     await mcp_tool.connect()
 
@@ -31,7 +31,7 @@ async def main() -> None:
     # 5. Create the agent
     agent = Agent(
         client=chat_client,
-        name="cupcake-agent",
+        name="arepa-lab-agent",
         instructions=instructions,
         tools=mcp_tool,
     )

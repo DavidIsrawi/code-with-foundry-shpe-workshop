@@ -1,11 +1,14 @@
 # Build AI Agents using Claude in Microsoft Foundry
 
-Welcome to **Sparkles**, the friendliest little cupcake shop on the
-internet. Sparkles has a problem most bakeries would love to have: too
-many customers, too many flavors, and not enough hands behind the
-counter. So today, you're going to hire some help - an AI agent that can
-greet guests, walk them through the day's flavors, take their order, and
-hand them a freshly baked cupcake on the way out.
+Welcome to **Arepa Lab** at the **2026 SHPE National Convention**,
+October 28–31, 2026, in Indianapolis, Indiana. Today you'll build an AI
+agent that greets guests, shows the available arepas, registers customers,
+and places orders through an MCP server.
+
+**Workshop training key:** `ArepasAtSHPE`. This public access/display value
+is for the external training platform, not the rotating order voucher,
+an MCP credential, or an admin password. The facilitator still needs to
+configure platform acceptance and supply the workshop link.
 
 You'll start by logging in to **Microsoft Foundry**, where you'll meet
 **Claude Sonnet** waiting for you in the Playground. After a quick chat
@@ -15,14 +18,15 @@ key and bring them home to your code editor.
 From there, you'll build the agent up one small step at a time using the
 **Microsoft Agent Framework**. First, a bare-bones "hello world" agent
 that proves you can reach the model. Next, you'll plug it into the
-**Cupcake Store MCP server** so it gains real superpowers - listing
+**Arepa Lab MCP server** so it gains tools for listing
 flavors, checking stock, placing orders. Finally, you'll let the MCP
 server hand the agent its own persona and welcome banner, turning a
-generic chatbot into Sparkles itself.
+generic chatbot into an Arepa Lab ordering assistant.
 
-By the end, you'll have ordered a cupcake from an agent you built from
+By the end, you'll have placed a test arepa order from an agent you built from
 scratch - and learned how Foundry, the Agent Framework, and MCP fit
-together along the way. 
+together along the way. A real order is optional and should only be placed
+when you intend to pick it up.
 
 > **What is Microsoft Foundry?** Foundry is Microsoft's hosted platform
 > for shipping AI applications. It's where you deploy models (OpenAI,
@@ -44,7 +48,7 @@ unlock it, and use the credentials below:
 
 ---
 
-✅ **In this step you have:** met Sparkles, learned what you'll build,
+✅ **In this step you have:** met Arepa Lab, learned what you'll build,
 and signed in to the Windows 11 lab VM where the workshop runs.
 
 ➡️ Click **Next** to log in to Microsoft Foundry.  

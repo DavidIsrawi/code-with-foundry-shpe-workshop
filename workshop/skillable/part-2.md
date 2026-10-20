@@ -23,7 +23,7 @@ in a moment.
      with. You can switch deployments here without leaving the page.
    - **Instructions** (system prompt) - the box on the left where you set
      the agent's persona and rules. Try pasting
-     `You are a sentient cupcake. Answer every question with frosting-related puns.` and chat
+     `You are a friendly arepa chef. Answer every question with cooking-related puns.` and chat
      again to see the effect.
    - **Chat** - the main conversation area. Type `Hello world` and verify
      the model responds. Use it to iterate on prompts before committing

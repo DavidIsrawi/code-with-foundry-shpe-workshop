@@ -1,27 +1,38 @@
-## Part 4 - Step 2: Connect to the Cupcake Store MCP Server
+## Part 4 - Step 2: Connect to the Arepa Lab MCP Server
 
 A chatbot that only chats is just an expensive parrot. To actually *do*
-things - check what flavors are in stock, place an order, mark it ready
-for pickup - the agent needs **tools**.
+things - list in-stock arepas, place an order, check its status - the
+agent needs **tools**. Staff, not the client, mark real orders ready for pickup.
 
 > **What is MCP?** The **Model Context Protocol** is an open standard
 > for letting AI agents talk to external systems. An MCP server publishes
 > a set of tools (functions the agent can call), prompts (reusable
 > instruction snippets), and resources (data) over HTTP. Your agent just
-> needs the URL - the framework handles discovery and invocation. The
-> Cupcake Store team already runs an MCP server with all the cupcake
-> tools you need.
+> needs the URL - the framework handles discovery and invocation.
+> Arepa Lab uses **Streamable HTTP**, not the legacy SSE transport.
 
 Two changes to your 'agent.py':
 
-1. Import 'MCPStreamableHTTPTool', point it at the server's URL, and call 'connect()'.
+1. Import 'MCPStreamableHTTPTool', read the server URL from 'MCP_SERVER_URL', and call 'connect()'.
 2. Pass it to the 'Agent' via 'tools='.
 
 The agent will discover the available tools automatically and decide when
 to call them based on what you ask.
 
+The tools are `register_customer(first_name, last_name, city)`,
+`list_arepas()`, `order_arepa(flavor_id, customer_id, kind, voucher_code)`,
+`check_order_status(customer_id)`, `cancel_order(customer_id, kind)`, and
+`voucher_status()`. There are no legacy tool aliases.
+
+`list_arepas()` returns only in-stock items with `id`, `name`, `description`,
+`price` (USD), `stock_status`, and `stock_label`. Stock statuses are `plenty`,
+`limited`, and `almost_finished`; do not infer exact inventory. Use the
+returned item's `id` as `flavor_id` when ordering. The fields `flavor_id`,
+`flavor`, and `flavor_name` have not been renamed. The menu HTTP route is
+`GET /arepas`; the client connects to `/mcp/`, not the menu route.
+
 ```python-notype
-"""Sparkles - The Cupcake ordering agent"""
+"""Arepa Lab - The arepa ordering agent."""
 
 import asyncio
 import os
@@ -42,17 +53,17 @@ async def main() -> None:
         base_url=os.environ["FOUNDRY_ENDPOINT"],
     )
 
-    # 3. Connect to the Cupcake Store MCP server                 👈 new
+    # 3. Connect to the Arepa Lab MCP server                    👈 new
     mcp_tool = MCPStreamableHTTPTool(
-        name="cupcake-store",
-        url="https://ca-cupcake-mcp.jollyplant-ed217b0d.eastus.azurecontainerapps.io/mcp/",
+        name="arepa-lab",
+        url=os.environ.get("MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
     )
     await mcp_tool.connect()
 
     # 4. Create the agent
     agent = Agent(
         client=chat_client,
-        name="cupcake-agent",
+        name="arepa-lab-agent",
         tools=mcp_tool,                                          # 👈 new
     )
 
@@ -87,19 +98,19 @@ python agent.py
 
 **Try it:**
 
-Send the message `What flavors do you have today?` to the agent.
+Send the message `What arepas do you have today?` to the agent.
 
-Do *not* order a cupcake yet! This step is just to confirm that the agent can call the MCP tools to check inventory and answer questions about flavors. Don't worry, you'll get to order a cupcake in the next step!
+Do *not* order an arepa yet! This step is just to confirm that the agent can call the MCP tools to list available arepas and their stock labels. You'll place a test order in the next step.
 
 Type 'exit' when you're done to stop the agent.
 
-The agent is now calling MCP tools on the Cupcake Store server. But it's
+The agent is now calling MCP tools on the Arepa Lab server. But it's
 still acting like a generic assistant - it has no persona yet.
 
 ---
 
-✅ **In this step you have:** connected your agent to the Cupcake Store
-MCP server, and watched it call live tools to answer real cupcake
+✅ **In this step you have:** connected your agent to the Arepa Lab
+MCP server, and watched it call live tools to answer arepa
 questions.
 
 ➡️ Click **Next** to give the agent its persona and welcome banner.

@@ -21,14 +21,24 @@ instance to use). All three live one click away.
    taskbar. It opens 'c:\agents' by default - that's where the workshop
    code lives.
 
-4. In the VS Code Explorer, open the existing '.env' file and replace
+4. In the VS Code Explorer, open the existing '.env' file (or copy
+   '.env.sample' to '.env' if only the template is present) and replace
    placeholder values with the ones you just found. Shorten the copied endpoint URI so that it ends with "/anthropic" - not with "/v1/messages".
 
    ```env
    FOUNDRY_ENDPOINT="https://<your-resource>.services.ai.azure.com/anthropic"
    FOUNDRY_API_KEY="<your-api-key>"
    FOUNDRY_MODEL_DEPLOYMENT="claude-sonnet-4-6"
+   MCP_SERVER_URL="http://127.0.0.1:8000/mcp/"
    ```
+
+   `MCP_SERVER_URL` is separate from the Foundry endpoint. The default
+   only works if the Arepa Lab server is running on the lab VM itself.
+   Otherwise, use the facilitator-provided Streamable HTTP endpoint,
+   including `/mcp/`. The rebranded hosted endpoint has not been confirmed
+   deployed; the facilitator must supply it before the MCP steps.
+   The demo MCP endpoint has no authentication. Do not send your Foundry
+   API key or the `ArepasAtSHPE` training key to it.
 
 ---
 

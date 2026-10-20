@@ -1,23 +1,23 @@
 ## Part 4 - Step 3: Load Instructions and a Welcome Banner from MCP
 
 The agent works, but it still sounds like a generic assistant. The
-Cupcake Store has *opinions* about how its agent should behave - tone,
-upsells, allergy warnings, the works - and it doesn't want every
+Arepa Lab defines how its agent should behave - registration, vouchers,
+order confirmation, and allergy guidance - and it doesn't want every
 developer to copy-paste the latest version of that persona into their
 code. So those instructions live on the **server**, not in your repo.
 
 MCP servers can expose **prompts** - reusable text snippets curated by
 the server owner. When the persona changes, the server updates; your
-code keeps working without a redeploy. The Cupcake Store exposes two:
+code keeps working without a redeploy. Arepa Lab exposes two:
 
-- **agent_instructions** - the persona / system prompt
+- **agent_instructions** - the canonical agent conversation instructions
 - **welcome_banner** - a friendly greeting to print at startup
 
 Fetch both from the server, pass 'agent_instructions' to the 'Agent', and
 print the banner before the chat starts.
 
 ```python-notype
-"""Sparkles - The Cupcake ordering agent"""
+"""Arepa Lab - The arepa ordering agent."""
 
 import asyncio
 import os
@@ -39,10 +39,10 @@ async def main() -> None:
         base_url=os.environ["FOUNDRY_ENDPOINT"],
     )
 
-    # 3. Connect to the Cupcake Store MCP server
+    # 3. Connect to the Arepa Lab MCP server
     mcp_tool = MCPStreamableHTTPTool(
-        name="cupcake-store",
-        url="https://ca-cupcake-mcp.jollyplant-ed217b0d.eastus.azurecontainerapps.io/mcp/",
+        name="arepa-lab",
+        url=os.environ.get("MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
     )
     await mcp_tool.connect()
 
@@ -53,7 +53,7 @@ async def main() -> None:
     # 5. Create the agent
     agent = Agent(
         client=chat_client,
-        name="cupcake-agent",
+        name="arepa-lab-agent",
         instructions=instructions,                                     # 👈 new
         tools=mcp_tool,
     )
@@ -92,27 +92,37 @@ Back in the VS Code terminal at the bottom of the editor, run:
 python agent.py
 ```
 
-**Try it:** Now it's time to order your cupcake! 
+**Try it:** Ask for a **test arepa order** first.
+
+Send `I'd like to place a test arepa order.` to the agent.
+
+1. Reuse your customer ID, or give your first name, last name, and city to
+   `register_customer`. Save the returned eight-character `customer_id`.
+2. Choose an arepa from the live menu and explicitly confirm `kind="test"`.
+3. Enter the **current six-character voucher** shown on the room's
+   `/dashboard`. Both test and real orders require it. `ArepasAtSHPE`
+   is the training key, not this voucher.
+4. The test order completes immediately without consuming stock. It is
+   not a pickup order and is not returned by `check_order_status`.
+5. Only if you want a real arepa and the facilitator is ready, explicitly
+   confirm `kind="real"` with the current voucher. A real order consumes
+   one unit; each customer ID has a lifetime limit of one real order.
+6. Use `check_order_status(customer_id)` or watch the room's dashboard
+   for your active real order. Follow the facilitator's pickup instructions
+   when staff mark it ready.
+
+`cancel_order(customer_id, kind)` works only on pending orders. Cancelling
+a pending real order restores stock and your real-order allowance; completed
+test orders cannot be cancelled. If a voucher expires, read the current
+dashboard code and retry with it. Do not guess a code or create another
+customer ID to bypass the real-order limit.
 
 Type 'exit' when you're done to stop the agent.
-
-
-![](../images/06-step3-prompts.png)
-
-
-- Answer the questions of the agent
-- Select your favorite cupcake
-- Place your order
-- Look at the screen in the room
-- When your order is ready for pickup, go to the front of the room to pick it up
-
-
-![](../images/07-dashboard.png)
 
 ---
 
 ✅ **In this step you have:** built a Hello World agent, connected it to
-the Cupcake Store MCP server for tools, loaded its persona and welcome
-banner from MCP prompts, and ordered a real cupcake.
+the Arepa Lab MCP server for tools, loaded its persona and welcome
+banner from MCP prompts, and placed a test arepa order.
 
 ➡️ Click **Next** for the recap and ideas on where to go from here.

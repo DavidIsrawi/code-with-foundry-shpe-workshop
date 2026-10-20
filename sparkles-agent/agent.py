@@ -1,1 +1,0 @@
-"""Sparkles - The Cupcake ordering agent"""

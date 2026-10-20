@@ -14,7 +14,7 @@ that you'll see in every agent you build:
 Paste this into 'agent.py':
 
 ```python-notype
-"""Sparkles - The Cupcake ordering agent"""
+"""Arepa Lab - The arepa ordering agent."""
 
 import asyncio
 import os
@@ -39,7 +39,7 @@ async def main() -> None:
     # 3. Create the agent
     agent = Agent(
         client=chat_client,
-        name="cupcake-agent",
+        name="arepa-lab-agent",
     )
 
     # 4. Start a chat session and talk to the agent

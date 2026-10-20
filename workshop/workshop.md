@@ -1,11 +1,14 @@
 # Workshop: Build an AI Agent with Microsoft Foundry & Microsoft Agent Framework
 
-Welcome to **Sparkles**, the friendliest little cupcake shop on the
-internet. Sparkles has a problem most bakeries would love to have: too
-many customers, too many flavors, and not enough hands behind the
-counter. So today, you're going to hire some help - an AI agent that can
-greet guests, walk them through the day's flavors, take their order, and
-hand them a freshly baked cupcake on the way out.
+Welcome to **Arepa Lab** at the **2026 SHPE National Convention**,
+October 28–31, 2026, in Indianapolis, Indiana. Today you'll build an AI
+agent that greets guests, shows the available arepas, registers customers,
+and places orders through an MCP server.
+
+**Workshop training key:** `ArepasAtSHPE`. This public access/display value
+is for the external training platform, not the rotating order voucher,
+an MCP credential, or an admin password. The facilitator still needs to
+configure platform acceptance and supply the workshop link.
 
 You'll start by logging in to **Microsoft Foundry**, where you'll meet
 **Claude Sonnet** waiting for you in the Playground. After a quick chat
@@ -15,19 +18,21 @@ key and bring them home to your code editor.
 From there, you'll build the agent up one small step at a time using the
 **Microsoft Agent Framework**. First, a bare-bones "hello world" agent
 that proves you can reach the model. Next, you'll plug it into the
-**Cupcake Store MCP server** so it gains real superpowers - listing
+**Arepa Lab MCP server** so it gains tools for listing
 flavors, checking stock, placing orders. Finally, you'll let the MCP
 server hand the agent its own persona and welcome banner, turning a
-generic chatbot into Sparkles itself.
+generic chatbot into an Arepa Lab ordering assistant.
 
-By the end, you'll have ordered a cupcake from an agent you built from
+By the end, you'll have placed a test arepa order from an agent you built from
 scratch - and learned how Foundry, the Agent Framework, and MCP fit
-together along the way. 
+together along the way. A real order is optional and should only be placed
+when you intend to pick it up.
 
 **Prerequisites**
 - Access to an Azure subscription with Microsoft Foundry
 - Python 3.10+ installed
 - This repository cloned locally (or opened in a Codespace)
+- A running Arepa Lab MCP server, locally or at a confirmed endpoint supplied by the facilitator
 
 > **What is Microsoft Foundry?** Foundry is Microsoft's hosted platform
 > for shipping AI applications. It's where you deploy models (OpenAI,
@@ -104,15 +109,24 @@ instance to use). All three live one click away.
 > screenshots, or commits. The `.env` file you'll edit next is already
 > listed in `.gitignore` so it stays on your machine.
 
-3. Open the existing `.env` file in the `sparkles-agent/` folder and replace
-   the placeholder values with the ones you just copied:
+3. Copy `.env.sample` to `.env` in the `arepa-lab-agent/` folder, then
+   replace the Foundry placeholder values with the ones you just copied.
+   Keep the populated `.env` local; only `.env.sample` belongs in Git.
 
    ```env
    FOUNDRY_ENDPOINT="https://<your-resource>.services.ai.azure.com/anthropic"
    FOUNDRY_API_KEY="<your-api-key>"
    FOUNDRY_MODEL_DEPLOYMENT="<your-deployment-name>"
+   MCP_SERVER_URL="http://127.0.0.1:8000/mcp/"
    ```
 
+   `MCP_SERVER_URL` is separate from the Foundry endpoint. The local default
+   requires the Arepa Lab server to run in the same machine/container as
+   the client. For a hosted lab or Codespace without that server, replace
+   it with the facilitator-provided Streamable HTTP URL, including `/mcp/`.
+   The workshop demo MCP endpoint has no authentication; do not send your
+   Foundry key or training key to it. The rebranded hosted endpoint has
+   not yet been confirmed deployed.
 
 
 ## Part 4 - Build the Agent
@@ -124,10 +138,10 @@ into a single `Agent` object you can talk to.
 
 ### Setup
 
-Open a terminal in the `sparkles-agent/` folder of this repo:
+Open a terminal in the `arepa-lab-agent/` folder of this repo:
 
 ```bash
-cd sparkles-agent
+cd arepa-lab-agent
 ```
 
 The folder already contains a `requirements.txt` with the dependencies you need:
@@ -154,7 +168,7 @@ pip install -r requirements.txt
 > packages don't pollute your global Python. In Codespaces this is
 > already taken care of.
 
-Create an empty `agent.py` file in the same folder. You'll build it up in
+Open the starter `agent.py` file in the same folder. You'll build it up in
 three small steps - run it after each step to see the agent grow.
 
 
@@ -173,7 +187,7 @@ that you'll see in every agent you build:
   what was said earlier in the chat.
 
 ```python
-"""Sparkles - The Cupcake ordering agent"""
+"""Arepa Lab - The arepa ordering agent."""
 
 import asyncio
 import os
@@ -198,7 +212,7 @@ async def main() -> None:
     # 3. Create the agent
     agent = Agent(
         client=chat_client,
-        name="cupcake-agent",
+        name="arepa-lab-agent",
     )
 
     # 4. Start a chat session and talk to the agent
@@ -236,30 +250,41 @@ Hi there! How can I help you today?
 
 
 
-### Step 2 - Connect to the Cupcake Store MCP Server
+### Step 2 - Connect to the Arepa Lab MCP Server
 
 A chatbot that only chats is just an expensive parrot. To actually *do*
-things - check what flavors are in stock, place an order, mark it ready
-for pickup - the agent needs **tools**.
+things - list in-stock arepas, place an order, check its status - the
+agent needs **tools**. Staff, not the client, mark real orders ready for pickup.
 
 > **What is MCP?** The **Model Context Protocol** is an open standard
 > for letting AI agents talk to external systems. An MCP server publishes
 > a set of tools (functions the agent can call), prompts (reusable
 > instruction snippets), and resources (data) over HTTP. Your agent just
-> needs the URL - the framework handles discovery and invocation. The
-> Cupcake Store team already runs an MCP server with all the cupcake
-> tools you need.
+> needs the URL - the framework handles discovery and invocation.
+> Arepa Lab uses **Streamable HTTP**, not the legacy SSE transport.
 
 Two changes to your `agent.py`:
 
-1. Import `MCPStreamableHTTPTool`, point it at the server's URL, and call `connect()`.
+1. Import `MCPStreamableHTTPTool`, read the server URL from `MCP_SERVER_URL`, and call `connect()`.
 2. Pass it to the `Agent` via `tools=`.
 
 The agent will discover the available tools automatically and decide when
 to call them based on what you ask.
 
+The tools are `register_customer(first_name, last_name, city)`,
+`list_arepas()`, `order_arepa(flavor_id, customer_id, kind, voucher_code)`,
+`check_order_status(customer_id)`, `cancel_order(customer_id, kind)`, and
+`voucher_status()`. There are no legacy tool aliases.
+
+`list_arepas()` returns only in-stock items with `id`, `name`, `description`,
+`price` (USD), `stock_status`, and `stock_label`. Stock statuses are `plenty`,
+`limited`, and `almost_finished`; do not infer exact inventory. Use the
+returned item's `id` as `flavor_id` when ordering. The fields `flavor_id`,
+`flavor`, and `flavor_name` have not been renamed. The menu HTTP route is
+`GET /arepas`; the client connects to `/mcp/`, not the menu route.
+
 ```python
-"""Sparkles - The Cupcake ordering agent"""
+"""Arepa Lab - The arepa ordering agent."""
 
 import asyncio
 import os
@@ -280,17 +305,17 @@ async def main() -> None:
         base_url=os.environ["FOUNDRY_ENDPOINT"],
     )
 
-    # 3. Connect to the Cupcake Store MCP server                 👈 new
+    # 3. Connect to the Arepa Lab MCP server                    👈 new
     mcp_tool = MCPStreamableHTTPTool(
-        name="cupcake-store",
-        url="https://ca-cupcake-mcp.jollyplant-ed217b0d.eastus.azurecontainerapps.io/mcp/",
+        name="arepa-lab",
+        url=os.environ.get("MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
     )
     await mcp_tool.connect()
 
     # 4. Create the agent
     agent = Agent(
         client=chat_client,
-        name="cupcake-agent",
+        name="arepa-lab-agent",
         tools=mcp_tool,                                          # 👈 new
     )
 
@@ -323,15 +348,16 @@ python agent.py
 
 ```
 You:
-What flavors do you have today?
+What arepas do you have today?
 
 Assistant:
 Here's what we have in stock today: ...
 ```
 
-![](images/05-step2-mcp.png)
+Use the live menu response; item names and availability can change.
+Do not place an order yet. This step only checks menu discovery.
 
-The agent is now calling MCP tools on the Cupcake Store server. But it's
+The agent is now calling MCP tools on the Arepa Lab server. But it's
 still acting like a generic assistant - it has no persona yet.
 
 
@@ -339,23 +365,23 @@ still acting like a generic assistant - it has no persona yet.
 ### Step 3 - Load Instructions and a Welcome Banner from MCP
 
 The agent works, but it still sounds like a generic assistant. The
-Cupcake Store has *opinions* about how its agent should behave - tone,
-upsells, allergy warnings, the works - and it doesn't want every
+Arepa Lab defines how its agent should behave - registration, vouchers,
+order confirmation, and allergy guidance - and it doesn't want every
 developer to copy-paste the latest version of that persona into their
 code. So those instructions live on the **server**, not in your repo.
 
 MCP servers can expose **prompts** - reusable text snippets curated by
 the server owner. When the persona changes, the server updates; your
-code keeps working without a redeploy. The Cupcake Store exposes two:
+code keeps working without a redeploy. Arepa Lab exposes two:
 
-- `agent_instructions` - the persona / system prompt
+- `agent_instructions` - the canonical agent conversation instructions
 - `welcome_banner` - a friendly greeting to print at startup
 
 Fetch both from the server, pass `agent_instructions` to the `Agent`, and
 print the banner before the chat starts.
 
 ```python
-"""Sparkles - The Cupcake ordering agent"""
+"""Arepa Lab - The arepa ordering agent."""
 
 import asyncio
 import os
@@ -377,10 +403,10 @@ async def main() -> None:
         base_url=os.environ["FOUNDRY_ENDPOINT"],
     )
 
-    # 3. Connect to the Cupcake Store MCP server
+    # 3. Connect to the Arepa Lab MCP server
     mcp_tool = MCPStreamableHTTPTool(
-        name="cupcake-store",
-        url="https://ca-cupcake-mcp.jollyplant-ed217b0d.eastus.azurecontainerapps.io/mcp/",
+        name="arepa-lab",
+        url=os.environ.get("MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
     )
     await mcp_tool.connect()
 
@@ -391,7 +417,7 @@ async def main() -> None:
     # 5. Create the agent
     agent = Agent(
         client=chat_client,
-        name="cupcake-agent",
+        name="arepa-lab-agent",
         instructions=instructions,                                     # 👈 new
         tools=mcp_tool,
     )
@@ -428,24 +454,33 @@ so the user sees the persona greet them right away.
 python agent.py
 ```
 
-**Try it:** Now it's time to order your cupcake! 
+**Try it:** Ask for a **test arepa order** first.
 
 ```txt
-Assistant:
-Hi there! Ready to pick out a cupcake? ...
+You:
+I'd like to place a test arepa order.
 ```
 
-![](images/06-step3-prompts.png)
+1. Reuse your customer ID, or give your first name, last name, and city to
+   `register_customer`. Save the returned eight-character `customer_id`.
+2. Choose an arepa from the live menu and explicitly confirm `kind="test"`.
+3. Enter the **current six-character voucher** shown on the room's
+   `/dashboard`. Both test and real orders require it. `ArepasAtSHPE`
+   is the training key, not this voucher.
+4. The test order completes immediately without consuming stock. It is
+   not a pickup order and is not returned by `check_order_status`.
+5. Only if you want a real arepa and the facilitator is ready, explicitly
+   confirm `kind="real"` with the current voucher. A real order consumes
+   one unit; each customer ID has a lifetime limit of one real order.
+6. Use `check_order_status(customer_id)` or watch the room's dashboard
+   for your active real order. Follow the facilitator's pickup instructions
+   when staff mark it ready.
 
-
-- Answer the questions of the agent
-- Select your favorite cupcake
-- Place your order
-- Look at the screen in the room
-- When your order is ready for pickup, go to the front of the room to pick it up
-
-
-![](images/07-dashboard.png)
+`cancel_order(customer_id, kind)` works only on pending orders. Cancelling
+a pending real order restores stock and your real-order allowance; completed
+test orders cannot be cancelled. If a voucher expires, read the current
+dashboard code and retry with it. Do not guess a code or create another
+customer ID to bypass the real-order limit.
 
 ## Recap
 
@@ -461,13 +496,13 @@ the glue, MCP for tools and prompts** - is the same one you'd use to
 build a support bot, a coding assistant, or an internal company helper.
 Swap the MCP server, change the persona, and you have a different agent.
 
-The full source is in [`sample/agent.py`](../sample/agent.py).
+The full source is in [`sample-code/agent.py`](sample-code/agent.py).
 
 ### Where to go next
 
 - **Add another MCP server.** The framework can connect to multiple at
   once - try giving the agent a weather server or a calendar server in
-  addition to the cupcake store.
+  addition to Arepa Lab.
 - **Swap the model.** Deploy a different model on Foundry, change
   `FOUNDRY_MODEL_DEPLOYMENT`, and see how the personality shifts.
 - **Stream the responses.** Use `agent.run_stream(...)` for token-by-token
@@ -481,7 +516,9 @@ The full source is in [`sample/agent.py`](../sample/agent.py).
 
 | Problem | Fix |
 | -- | -- |
-| `Missing required environment variable` | Check `.env` is in the `sparkles-agent/` folder and the variable names match |
-| `401 Unauthorized` | Wrong API key or endpoint - re-copy from Foundry |
+| `Missing required environment variable` | Copy `.env.sample` to `.env` in `arepa-lab-agent/` (or `workshop/sample-code/` for the reference agent), then fill in the Foundry values |
+| Foundry `401 Unauthorized` | Wrong API key or endpoint - re-copy from Foundry; the demo MCP endpoint needs no authentication |
+| MCP connection fails or tools are missing | Check `MCP_SERVER_URL`, including `/mcp/`, points to a running Arepa Lab server. `127.0.0.1` means the client's machine/container; the hosted endpoint must come from the facilitator |
+| Order voucher is rejected | Read the current six-character dashboard voucher; both `test` and `real` orders require it, not `ArepasAtSHPE` |
 | `DeploymentNotFound` | `FOUNDRY_MODEL_DEPLOYMENT` must match the **deployment** name, not the model name |
 | `ImportError: cannot import name 'Agent'` | Run `pip install -r requirements.txt` again |

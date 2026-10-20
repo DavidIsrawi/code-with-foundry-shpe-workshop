@@ -7,7 +7,7 @@ lines of Python, you built something that:
   Foundry**, using nothing more than an endpoint, a key, and a
   deployment name from your '.env' file.
 - ✅ Calls **live tools** through an **MCP server** - listing flavors,
-  checking stock, and placing real orders against the Cupcake Store
+  checking stock labels, and placing test or real orders against the Arepa Lab
   backend.
 - ✅ Pulls its **persona** and **welcome banner** straight from the MCP
   server's **prompts**, so the same code becomes a different agent the
@@ -27,7 +27,7 @@ Now that the basic loop works, here are a few directions to push it:
 
 - **Add another MCP server.** The framework can connect to several at
   once. Try giving the agent a weather server, a calendar, or a search
-  tool alongside the cupcake store and watch it pick the right tool
+  tool alongside Arepa Lab and watch it pick the right tool
   for each question.
 - **Swap the model.** Deploy a different model on Foundry (like Opus or Haiku),
   change 'FOUNDRY_MODEL_DEPLOYMENT' in your '.env', and see how the personality, latency, and tool-calling style shift.
@@ -42,4 +42,4 @@ Now that the basic loop works, here are a few directions to push it:
   one is the natural next step - and the moment you do, every agent
   that speaks MCP (yours or someone else's) can use your tools.
 
-**Thanks for building with us - now go eat your cupcake. 🧁**
+**Thanks for building with Arepa Lab at SHPE!**
