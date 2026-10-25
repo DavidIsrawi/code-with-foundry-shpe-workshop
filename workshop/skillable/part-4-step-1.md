@@ -5,8 +5,9 @@ persona - just confirm we can reach Foundry. Three pieces show up here
 that you'll see in every agent you build:
 
 - **Chat client** - the connection to the model. 'AnthropicFoundryClient'
-  knows how to call your Claude deployment on Foundry using the values
-  from '.env'.
+  calls Claude endpoints; 'OpenAIChatClient' supports GPT/OpenAI-compatible
+  endpoints. A Foundry project endpoint is expanded to '/openai/v1'.
+  The values come from '.env'.
 - **Agent** - wraps the chat client (and later, tools and instructions).
 - **Session** - holds the conversation history so the agent remembers
   what was said earlier in the chat.
@@ -18,22 +19,28 @@ Paste this into 'agent.py':
 
 import asyncio
 import os
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
 from agent_framework import Agent
 from agent_framework.foundry import AnthropicFoundryClient
+from agent_framework.openai import OpenAIChatClient
 
 # 1. Load environment variables from .env
 load_dotenv()
 
 
 async def main() -> None:
-    # 2. Configure the chat model (Claude on Microsoft Foundry)
-    chat_client = AnthropicFoundryClient(
+    # 2. Select the protocol advertised by the Foundry endpoint
+    endpoint = urlsplit(os.environ["FOUNDRY_ENDPOINT"].rstrip("/"))
+    if "/api/projects/" in endpoint.path and not endpoint.path.endswith("/openai/v1"):
+        endpoint = endpoint._replace(path=endpoint.path + "/openai/v1")
+    client_type = OpenAIChatClient if endpoint.path.endswith("/openai/v1") else AnthropicFoundryClient
+    chat_client = client_type(
         model=os.environ["FOUNDRY_MODEL_DEPLOYMENT"],
         api_key=os.environ["FOUNDRY_API_KEY"],
-        base_url=os.environ["FOUNDRY_ENDPOINT"],
+        base_url=endpoint.geturl(),
     )
 
     # 3. Create the agent
@@ -77,8 +84,7 @@ Type **exit** when you're done to stop the agent. (If you're used to running Pyt
 
 ---
 
-✅ **In this step you have:** wired up an 'AnthropicFoundryClient', wrapped
-it in an 'Agent', and chatted with your Claude deployment from your own
-code.
+✅ **In this step you have:** wired up the appropriate model client, wrapped
+it in an 'Agent', and chatted with your Foundry deployment from your own code.
 
 ➡️ Click **Next** to give the agent some real tools via MCP.

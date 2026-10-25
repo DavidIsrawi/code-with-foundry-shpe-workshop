@@ -49,9 +49,23 @@ class WorkshopTests(unittest.TestCase):
                     with self.subTest(source=name, endpoint=endpoint, exit=exit_word):
                         self.check_client(source, stage, endpoint, exit_word)
 
-    def check_client(self, source, stage, endpoint, exit_word):
+    def test_clients_route_openai_and_foundry_project_endpoints(self):
+        for name, stage, source in agent_sources():
+            for model_endpoint, expected_url in [
+                ("https://example.invalid/openai/v1/", "https://example.invalid/openai/v1"),
+                ("https://example.invalid/api/projects/test", "https://example.invalid/api/projects/test/openai/v1"),
+                ("https://example.invalid/api/projects/test/openai/v1", "https://example.invalid/api/projects/test/openai/v1"),
+            ]:
+                with self.subTest(source=name, endpoint=model_endpoint):
+                    self.check_client(
+                        source, stage, None, "exit",
+                        model_endpoint=model_endpoint, expected_url=expected_url,
+                    )
+
+    def check_client(self, source, stage, endpoint, exit_word, *,
+                     model_endpoint="https://example.invalid/anthropic", expected_url=None):
         environment = {
-            "FOUNDRY_ENDPOINT": "https://example.invalid/anthropic",
+            "FOUNDRY_ENDPOINT": model_endpoint,
             "FOUNDRY_API_KEY": "offline-test-key",
             "FOUNDRY_MODEL_DEPLOYMENT": "claude-sonnet-4-6",
         }
@@ -72,11 +86,14 @@ class WorkshopTests(unittest.TestCase):
         framework.MCPStreamableHTTPTool = Mock(return_value=mcp)
         foundry = ModuleType("agent_framework.foundry")
         foundry.AnthropicFoundryClient = Mock(return_value=sentinel.client)
+        openai = ModuleType("agent_framework.openai")
+        openai.OpenAIChatClient = Mock(return_value=sentinel.client)
         dotenv = ModuleType("dotenv")
         dotenv.load_dotenv = Mock()
         modules = {
             "agent_framework": framework,
             "agent_framework.foundry": foundry,
+            "agent_framework.openai": openai,
             "dotenv": dotenv,
         }
         output = io.StringIO()
@@ -91,10 +108,13 @@ class WorkshopTests(unittest.TestCase):
             asyncio.run(namespace["main"]())
 
         dotenv.load_dotenv.assert_called_once_with()
-        foundry.AnthropicFoundryClient.assert_called_once_with(
+        model_client = openai.OpenAIChatClient if expected_url else foundry.AnthropicFoundryClient
+        unused_client = foundry.AnthropicFoundryClient if expected_url else openai.OpenAIChatClient
+        unused_client.assert_not_called()
+        model_client.assert_called_once_with(
             model=environment["FOUNDRY_MODEL_DEPLOYMENT"],
             api_key=environment["FOUNDRY_API_KEY"],
-            base_url=environment["FOUNDRY_ENDPOINT"],
+            base_url=expected_url or environment["FOUNDRY_ENDPOINT"],
         )
         expected_agent = {"client": sentinel.client, "name": "arepa-lab-agent"}
         if stage >= 2:

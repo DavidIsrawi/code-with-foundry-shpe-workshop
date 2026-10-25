@@ -5,7 +5,7 @@ Your working folder for the workshop. You build the **Arepa Lab** arepa-ordering
 ## Contents
 
 - `agent.py` - Empty starter. You fill this in during the workshop.
-- `requirements.txt` - Python dependencies (`agent-framework`, `agent-framework-foundry`, `python-dotenv`).
+- `requirements.txt` - Python dependencies (`agent-framework`, `agent-framework-foundry`, `agent-framework-openai`, `python-dotenv`).
 - `.env.sample` - Copy to `.env`, then fill in your Foundry endpoint, API key, and deployment name. Set `MCP_SERVER_URL` to the facilitator-provided Arepa Lab endpoint, or run the server locally at the sample URL. The workshop demo MCP endpoint needs no authentication.
 
 ## Run

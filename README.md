@@ -42,7 +42,7 @@ not been configured by this repository.
 ## Prerequisites
 
 - An Azure subscription with access to **Microsoft Foundry**
-- A deployed Claude model (e.g. `claude-sonnet-4-6`)
+- A deployed Claude model (e.g. `claude-sonnet-4-6`) or a GPT deployment with an OpenAI-compatible Foundry endpoint
 - Python 3.10+
 - A running Arepa Lab MCP server, locally or at an endpoint supplied by the facilitator
 
@@ -66,7 +66,7 @@ Keep populated `.env` files local; they are ignored by Git.
 
 | Variable | Description |
 | --- | --- |
-| `FOUNDRY_ENDPOINT` | Target URI of your Foundry deployment, e.g. `https://<resource>.services.ai.azure.com/anthropic` |
+| `FOUNDRY_ENDPOINT` | Claude `/anthropic` endpoint, a GPT/OpenAI-compatible `/openai/v1` endpoint, or a Foundry project endpoint (`.../api/projects/<project>`) |
 | `FOUNDRY_API_KEY` | API key for the Foundry deployment |
 | `FOUNDRY_MODEL_DEPLOYMENT` | Deployment name (e.g. `claude-sonnet-4-6`) |
 | `MCP_SERVER_URL` | Arepa Lab Streamable HTTP endpoint; defaults to `http://127.0.0.1:8000/mcp/` |
@@ -77,6 +77,12 @@ facilitator's confirmed endpoint, including `/mcp/`. The workshop demo MCP
 endpoint has no authentication; the Foundry key is only for the model.
 The rebranded hosted MCP deployment and workshop link are still pending;
 no production hostname or short link is assumed here.
+
+The reference client selects `AnthropicFoundryClient` for Claude endpoints and
+`OpenAIChatClient` for OpenAI-compatible endpoints. Foundry project endpoints
+are expanded to their `/openai/v1` API before connecting. This supports GPT
+deployments as well as the workshop's default Claude configuration without
+changing the MCP tools or agent conversation.
 
 ## Arepa Lab tool contract
 
@@ -110,6 +116,24 @@ Menu details come from the server. The menu HTTP route is `GET /arepas`; `/mcp/`
 Run `python -m unittest discover -s tests -v` from the repository root.
 These checks exercise the reference client and the copy-paste lab snippets
 with mocked Foundry/MCP connections; they do not place orders or require keys.
+
+## Client-to-MCP end-to-end regression tests
+
+The [v0 E2E suites](tests/e2e/README.md) test the current client and server
+checkouts together. The deterministic suite exercises all six tools through
+the workshop's MCP adapter; the model-backed suite runs the actual reference
+client with Foundry and requires real calls to all six tools.
+
+```bash
+.venv/bin/python tests/e2e/run.py --suite all \
+  --server-repo ../arepa-mcp \
+  --server-python ../arepa-mcp/.venv/bin/python
+```
+
+Run this after changes to either repository. Each suite starts isolated local
+services and synthetic data, then stops its own processes. Foundry credentials
+are required for the agent suite; `--suite contract` needs no model key.
+See the E2E guide for installation, configuration, coverage, and failure artifacts.
 
 ## Troubleshooting
 
