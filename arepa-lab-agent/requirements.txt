@@ -1,3 +1,4 @@
 agent-framework
 agent-framework-foundry
+agent-framework-openai
 python-dotenv

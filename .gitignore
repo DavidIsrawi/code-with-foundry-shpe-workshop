@@ -47,3 +47,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Disposable E2E storage, service logs and synthetic conversation transcripts
+.e2e-artifacts/
