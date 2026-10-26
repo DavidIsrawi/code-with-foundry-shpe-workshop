@@ -56,7 +56,7 @@ not as a passing full regression.
 
 ## V0 coverage
 
-The deterministic customer journey explicitly calls all six MCP tools. Other
+The deterministic customer journey explicitly calls all seven MCP tools. Other
 cases verify:
 
 - Tool discovery, required arguments, behavior annotations, and both server prompts.
@@ -68,15 +68,18 @@ cases verify:
   and enforcement of the lifetime real-order limit.
 - Every qualitative stock threshold, sold-out menu filtering, and rejected
   sold-out orders leaving no active order.
-- Voucher timing and failed-attempt throttling shared between REST and MCP.
+- Voucher timing and failed-attempt throttling shared between REST and MCP,
+  with stable `error_code` values and malformed codes excluded from the lockout.
+- Returning-customer lookup, including real-order eligibility.
 - REST registration/order placement followed by cancellation through MCP.
 
 The model-backed suite runs the reference client's actual `main()` function.
 It supplies terminal input and observes the real MCP adapter without replacing
 the agent, model client, server prompts, or HTTP calls. The conversation covers
 registration, menu refresh, an invalid voucher, voucher timing, test ordering,
-real ordering, status, cancellation, reordering, and ready/collected transitions.
-It requires actual calls to all six tools, checks their arguments and results,
+real ordering, status, cancellation, reordering, ready/collected transitions,
+and a returning-customer lookup.
+It requires actual calls to all seven tools, checks their arguments and results,
 and independently checks the stored records. Fluent agent text cannot substitute
 for a missing tool call. The conversation has a five-minute timeout.
 

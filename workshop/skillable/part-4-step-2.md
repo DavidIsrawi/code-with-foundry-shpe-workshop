@@ -20,7 +20,8 @@ The agent will discover the available tools automatically and decide when
 to call them based on what you ask.
 
 The tools are `register_customer(first_name, last_name, city)`,
-`list_arepas()`, `order_arepa(flavor_id, customer_id, kind, voucher_code)`,
+`get_customer(customer_id)`, `list_arepas()`,
+`order_arepa(flavor_id, customer_id, kind, voucher_code)`,
 `check_order_status(customer_id)`, `cancel_order(customer_id, kind)`, and
 `voucher_status()`. There are no legacy tool aliases.
 
