@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCAL_MCP_URL = "http://127.0.0.1:8000/mcp/"
 TOOL_ARGUMENTS = {
     "register_customer": ("first_name", "last_name", "city"),
+    "get_customer": ("customer_id",),
     "list_arepas": (),
     "order_arepa": ("flavor_id", "customer_id", "kind", "voucher_code"),
     "check_order_status": ("customer_id",),

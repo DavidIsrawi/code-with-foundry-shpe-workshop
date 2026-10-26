@@ -279,7 +279,8 @@ The agent will discover the available tools automatically and decide when
 to call them based on what you ask.
 
 The tools are `register_customer(first_name, last_name, city)`,
-`list_arepas()`, `order_arepa(flavor_id, customer_id, kind, voucher_code)`,
+`get_customer(customer_id)`, `list_arepas()`,
+`order_arepa(flavor_id, customer_id, kind, voucher_code)`,
 `check_order_status(customer_id)`, `cancel_order(customer_id, kind)`, and
 `voucher_status()`. There are no legacy tool aliases.
 
@@ -480,20 +481,23 @@ You:
 I'd like to place a test arepa order.
 ```
 
-1. Reuse your customer ID, or give your first name, last name, and city to
-   `register_customer`. Save the returned eight-character `customer_id`.
+1. Reuse your customer ID (the agent checks it with `get_customer`), or give
+   your first name, last name, and city to `register_customer`. Save the
+   returned eight-character `customer_id`.
 2. Choose an arepa from the live menu and explicitly confirm `kind="test"`.
 3. Enter the **current six-character voucher** shown on the room's
-   `/dashboard`. Both test and real orders require it. `ArepasAtSHPE`
-   is the training key, not this voucher.
+   `/dashboard`. Both test and real orders require it. Codes never
+   contain 0, 1, I, L, or O. `ArepasAtSHPE` is the training key, not
+   this voucher.
 4. The test order completes immediately without consuming stock. It is
    not a pickup order and is not returned by `check_order_status`.
 5. Only if you want a real arepa and the facilitator is ready, explicitly
    confirm `kind="real"` with the current voucher. A real order consumes
    one unit; each customer ID has a lifetime limit of one real order.
 6. Use `check_order_status(customer_id)` or watch the room's dashboard
-   for your active real order. Follow the facilitator's pickup instructions
-   when staff mark it ready.
+   for your active real order, listed under your short board name (for
+   example, "Ana P."). When staff mark it ready, come to the counter and
+   give your name.
 
 `cancel_order(customer_id, kind)` works only on pending orders. Cancelling
 a pending real order restores stock and your real-order allowance; completed
@@ -538,6 +542,6 @@ The full source is in [`sample-code/agent.py`](sample-code/agent.py).
 | `Missing required environment variable` | Copy `.env.sample` to `.env` in `arepa-lab-agent/` (or `workshop/sample-code/` for the reference agent), then fill in the Foundry values |
 | Foundry `401 Unauthorized` | Wrong API key or endpoint - re-copy from Foundry; the demo MCP endpoint needs no authentication |
 | MCP connection fails or tools are missing | Check `MCP_SERVER_URL`, including `/mcp/`, points to a running Arepa Lab server. `127.0.0.1` means the client's machine/container; the hosted endpoint must come from the facilitator |
-| Order voucher is rejected | Read the current six-character dashboard voucher; both `test` and `real` orders require it, not `ArepasAtSHPE` |
+| Order voucher is rejected | Read the current six-character dashboard voucher; both `test` and `real` orders require it, not `ArepasAtSHPE`. Codes never contain 0, 1, I, L, or O |
 | `DeploymentNotFound` | `FOUNDRY_MODEL_DEPLOYMENT` must match the **deployment** name, not the model name |
 | `ImportError: cannot import name 'Agent'` | Run `pip install -r requirements.txt` again |

@@ -92,11 +92,17 @@ The server exposes exactly these tools:
 | Tool | Arguments / behavior |
 | --- | --- |
 | `register_customer(first_name, last_name, city)` | Returns an eight-character `customer_id`. Reuse that ID. |
+| `get_customer(customer_id)` | Verifies a returning customer's ID and reports their first name, whether they can still order a real arepa, and any active real order. |
 | `list_arepas()` | Returns only in-stock items with `id`, `name`, `description`, `price` (USD), `stock_status`, and `stock_label`. |
 | `order_arepa(flavor_id, customer_id, kind, voucher_code)` | Use the selected item's `id` as `flavor_id`. `kind` is exactly `test` or `real`; both require the current six-character dashboard voucher. |
 | `check_order_status(customer_id)` | Reports active real orders, not test orders. |
 | `cancel_order(customer_id, kind)` | Pending orders only; cancelling a pending real order restores stock and the customer's real-order allowance. |
 | `voucher_status()` | Reports voucher status; use the current code displayed on the dashboard when ordering. |
+
+Failed calls include an `error_code` (for example `invalid_voucher`,
+`malformed_voucher`, `real_limit_reached`) and sometimes an `agent_note` meant
+for the agent rather than the user. Malformed voucher codes do not count toward
+the wrong-voucher lockout.
 
 Stock statuses are `plenty`, `limited`, and `almost_finished`. Show the returned
 labels, not invented inventory counts. Existing `flavor_id`, `flavor`, and
@@ -120,9 +126,9 @@ with mocked Foundry/MCP connections; they do not place orders or require keys.
 ## Client-to-MCP end-to-end regression tests
 
 The [v0 E2E suites](tests/e2e/README.md) test the current client and server
-checkouts together. The deterministic suite exercises all six tools through
+checkouts together. The deterministic suite exercises all seven tools through
 the workshop's MCP adapter; the model-backed suite runs the actual reference
-client with Foundry and requires real calls to all six tools.
+client with Foundry and requires real calls to all seven tools.
 
 ```bash
 .venv/bin/python tests/e2e/run.py --suite all \

@@ -45,6 +45,7 @@ class MCPContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({tool.name for tool in discovered}, set(TOOL_ARGUMENTS))
         expected = {
             "register_customer": (False, False, False),
+            "get_customer": (True, False, True),
             "list_arepas": (True, False, True),
             "order_arepa": (False, True, False),
             "check_order_status": (True, False, True),
@@ -65,9 +66,15 @@ class MCPContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("CONVERSATION FLOW", await self.tool.get_prompt("agent_instructions"))
         self.assertIn("AREPA LAB", await self.tool.get_prompt("welcome_banner"))
 
-    async def test_all_six_tools_in_one_customer_journey(self):
+    async def test_every_tool_in_one_customer_journey(self):
         self.server.set_stock(4)
         customer_id = await self.customer()
+        returning = await self.tool.call("get_customer", customer_id=customer_id.lower())
+        self.assertEqual(
+            (returning["found"], returning["first_name"], returning["can_order_real"]),
+            (True, "María", True),
+        )
+        self.assertIsNone(returning["active_real_order"])
         menu = await self.tool.call("list_arepas")
         self.assertEqual(menu[0]["id"], FLAVOR_ID)
         self.assertNotIn("stock", menu[0])
@@ -84,15 +91,22 @@ class MCPContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((stock, count, rows[0]["status"]), (4, 0, "collected"))
         real = await self.order(customer_id)
         self.assertTrue(real["success"])
+        self.assertEqual(real["board_name"], "María S.")
+        self.assertIn('"María S."', real["message"])
+        self.assertNotIn("voucher", real["message"].lower())
         self.assertEqual(self.state(customer_id)[:2], (3, 1))
         status = await self.tool.call("check_order_status", customer_id=customer_id)
         self.assertEqual((status["found"], status["status"]), (True, "pending"))
-        self.assertFalse((await self.order(customer_id))["success"])
+        self.assertEqual((await self.order(customer_id))["error_code"], "active_order_exists")
+        returning = await self.tool.call("get_customer", customer_id=customer_id)
+        self.assertFalse(returning["can_order_real"])
+        self.assertEqual(returning["active_real_order"]["status"], "pending")
 
         cancelled = await self.tool.call("cancel_order", customer_id=customer_id, kind="real")
         self.assertTrue(cancelled["success"])
         self.assertEqual(self.state(customer_id)[:2], (4, 0))
-        self.assertFalse((await self.tool.call("cancel_order", customer_id=customer_id, kind="real"))["success"])
+        repeat = await self.tool.call("cancel_order", customer_id=customer_id, kind="real")
+        self.assertEqual((repeat["success"], repeat["error_code"]), (False, "no_active_order"))
         self.assertEqual(self.state(customer_id)[:2], (4, 0))
         self.assertTrue((await self.order(customer_id))["success"])
         self.assertEqual({call["tool"] for call in self.tool.calls}, set(TOOL_ARGUMENTS))
@@ -105,11 +119,13 @@ class MCPContractTests(unittest.IsolatedAsyncioTestCase):
         self.server.post(f"/admin/orders/{order['order_id']}/ready")
         status = await self.tool.call("check_order_status", customer_id=customer_id)
         self.assertEqual(status["status"], "ready")
-        self.assertFalse((await self.tool.call("cancel_order", customer_id=customer_id, kind="real"))["success"])
+        ready_cancel = await self.tool.call("cancel_order", customer_id=customer_id, kind="real")
+        self.assertEqual((ready_cancel["success"], ready_cancel["error_code"]), (False, "order_not_cancellable"))
         self.assertEqual(self.state(customer_id)[:2], (11, 1))
         self.server.post(f"/admin/orders/{order['order_id']}/collected")
         self.assertFalse((await self.tool.call("check_order_status", customer_id=customer_id))["found"])
-        self.assertFalse((await self.order(customer_id))["success"])
+        after_pickup = await self.order(customer_id)
+        self.assertEqual((after_pickup["success"], after_pickup["error_code"]), (False, "real_limit_reached"))
         self.assertTrue((await self.order(customer_id, "test"))["success"])
         self.assertEqual(self.state(customer_id)[:2], (11, 1))
 
@@ -130,12 +146,15 @@ class MCPContractTests(unittest.IsolatedAsyncioTestCase):
             ("María", "O'Brien", "Bogotá"),
         )
         customer_id = registered["customer_id"]
-        for invalid in [
-            {"customer_id": "invalid"}, {"customer_id": "ZZZZZZZZ"},
-            {"flavor_id": "missing"}, {"voucher_code": "WRONG!"},
+        for invalid, code in [
+            ({"customer_id": "invalid"}, "invalid_input"),
+            ({"customer_id": "ZZZZZZZZ"}, "unknown_customer"),
+            ({"flavor_id": "missing"}, "flavor_not_found"),
+            ({"voucher_code": "WRONG!"}, "malformed_voucher"),
         ]:
             with self.subTest(invalid=invalid):
-                self.assertFalse((await self.order(customer_id, **invalid))["success"])
+                result = await self.order(customer_id, **invalid)
+                self.assertEqual((result["success"], result["error_code"]), (False, code))
         self.assertEqual(self.state(customer_id), (12, 0, []))
 
     async def test_stock_thresholds_and_sold_out_order(self):
@@ -147,7 +166,8 @@ class MCPContractTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await self.tool.call("list_arepas"))[0]["stock_status"], status)
         self.server.set_stock(0)
         self.assertEqual(await self.tool.call("list_arepas"), [])
-        self.assertFalse((await self.order(customer_id))["success"])
+        sold_out = await self.order(customer_id)
+        self.assertEqual((sold_out["success"], sold_out["error_code"]), (False, "sold_out"))
         stock, count, rows = self.state(customer_id)
         self.assertEqual((stock, count), (0, 0))
         self.assertTrue(all(row["status"] == "cancelled" for row in rows))
@@ -156,16 +176,41 @@ class MCPContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_voucher_throttling_is_shared_with_rest(self):
         customer_id = await self.customer()
         for _ in range(5):
-            self.assertFalse((await self.order(customer_id, "test", voucher_code="WRONG!"))["success"])
+            wrong = await self.order(customer_id, "test", voucher_code=self.server.wrong_voucher())
+            self.assertEqual(wrong["error_code"], "invalid_voucher")
+            self.assertGreater(wrong["seconds_until_rotation"], 0)
+            self.assertLessEqual(wrong["seconds_until_rotation"], 180)
+            self.assertNotIn(wrong["agent_note"], wrong["message"])
             rejected = self.server.web.post("/orders", json={
                 "flavor_id": FLAVOR_ID, "customer_id": customer_id,
-                "kind": "test", "voucher_code": "WRONG!",
+                "kind": "test", "voucher_code": self.server.wrong_voucher(),
             })
             self.assertEqual(rejected.status_code, 403)
         locked = await self.order(customer_id, "test")
         self.assertFalse(locked["success"])
         self.assertIn("Too many", locked["message"])
+        self.assertEqual(locked["error_code"], "voucher_locked")
+        self.assertGreater(locked["retry_after_s"], 0)
         self.assertEqual(self.state(customer_id), (12, 0, []))
+
+    async def test_malformed_vouchers_and_bad_ids_get_actionable_errors(self):
+        customer_id = await self.customer()
+        for _ in range(6):
+            for code, bad in [("WRONG0", ["O", "0"]), ("ABC23", [])]:
+                malformed = await self.order(customer_id, "test", voucher_code=code)
+                self.assertEqual(malformed["error_code"], "malformed_voucher")
+                self.assertEqual(malformed["invalid_characters"], bad)
+        self.assertTrue((await self.order(customer_id, "test"))["success"])
+        invalid = await self.tool.call(
+            "register_customer", first_name=" ", last_name="G@rcia", city="Test City",
+        )
+        self.assertEqual(invalid["error_code"], "invalid_input")
+        self.assertEqual(set(invalid["fields"]), {"first_name", "last_name"})
+        unknown = await self.tool.call("get_customer", customer_id="ZZZZZZZZ")
+        self.assertEqual((unknown["found"], unknown["error_code"]), (False, "unknown_customer"))
+        bad_id = await self.tool.call("get_customer", customer_id="abc")
+        self.assertEqual((bad_id["found"], bad_id["error_code"]), (False, "invalid_input"))
+        self.assertEqual(set(bad_id["fields"]), {"customer_id"})
 
     async def test_rest_and_mcp_share_registration_ordering_and_cancellation(self):
         customer = self.server.post("/customers", json={

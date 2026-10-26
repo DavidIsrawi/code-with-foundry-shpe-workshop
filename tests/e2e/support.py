@@ -19,6 +19,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[2]
 TOOL_ARGUMENTS = {
     "register_customer": {"first_name", "last_name", "city"},
+    "get_customer": {"customer_id"},
     "list_arepas": set(),
     "order_arepa": {"flavor_id", "customer_id", "kind", "voucher_code"},
     "check_order_status": {"customer_id"},
@@ -192,6 +193,11 @@ class LocalServer:
         response = self.web.get("/dashboard/data")
         response.raise_for_status()
         return response.json()["voucher"]
+
+    def wrong_voucher(self):
+        """A well-formed code the server does not currently accept, so it counts as a real miss."""
+        current = self.voucher()
+        return next(code for code in ("ZZZZZZ", "YYYYYY") if code != current)
 
     def set_stock(self, stock):
         self.post(f"/admin/flavors/{FLAVOR_ID}/edit", data={"stock": str(stock)})

@@ -102,20 +102,23 @@ python agent.py
 
 Send `I'd like to place a test arepa order.` to the agent.
 
-1. Reuse your customer ID, or give your first name, last name, and city to
-   `register_customer`. Save the returned eight-character `customer_id`.
+1. Reuse your customer ID (the agent checks it with `get_customer`), or give
+   your first name, last name, and city to `register_customer`. Save the
+   returned eight-character `customer_id`.
 2. Choose an arepa from the live menu and explicitly confirm `kind="test"`.
 3. Enter the **current six-character voucher** shown on the room's
-   `/dashboard`. Both test and real orders require it. `ArepasAtSHPE`
-   is the training key, not this voucher.
+   `/dashboard`. Both test and real orders require it. Codes never
+   contain 0, 1, I, L, or O. `ArepasAtSHPE` is the training key, not
+   this voucher.
 4. The test order completes immediately without consuming stock. It is
    not a pickup order and is not returned by `check_order_status`.
 5. Only if you want a real arepa and the facilitator is ready, explicitly
    confirm `kind="real"` with the current voucher. A real order consumes
    one unit; each customer ID has a lifetime limit of one real order.
 6. Use `check_order_status(customer_id)` or watch the room's dashboard
-   for your active real order. Follow the facilitator's pickup instructions
-   when staff mark it ready.
+   for your active real order, listed under your short board name (for
+   example, "Ana P."). When staff mark it ready, come to the counter and
+   give your name.
 
 `cancel_order(customer_id, kind)` works only on pending orders. Cancelling
 a pending real order restores stock and your real-order allowance; completed

@@ -16,7 +16,7 @@ class WorkshopAgentTests(unittest.IsolatedAsyncioTestCase):
     def setUpClass(cls):
         cls.server = cls.enterClassContext(LocalServer("agent"))
 
-    async def test_reference_agent_uses_all_six_tools_in_a_conversation(self):
+    async def test_reference_agent_uses_every_tool_in_a_conversation(self):
         test = self
         instances = []
         messages = []
@@ -72,7 +72,7 @@ class WorkshopAgentTests(unittest.IsolatedAsyncioTestCase):
             called_since("list_arepas", start)
 
             start = len(calls())
-            yield order_message("test", "ZZZZZZ" if test.server.voucher() != "ZZZZZZ" else "YYYYYY")
+            yield order_message("test", test.server.wrong_voucher())
             called_since("order_arepa", start, success=False)
             assert_state(customer_id, 12, 0)
             if not any(call["tool"] == "voucher_status" for call in calls()[start:]):
@@ -128,6 +128,22 @@ class WorkshopAgentTests(unittest.IsolatedAsyncioTestCase):
             collected = called_since("check_order_status", start)
             test.assertFalse(collected["result"]["found"])
             assert_state(customer_id, 11, 1)
+
+            start = len(calls())
+            yield (
+                f"I'm a returning customer and my customer ID is {customer_id}. "
+                "Please look me up and tell me whether I can still order a real arepa."
+            )
+            if not any(call["tool"] == "get_customer" for call in calls()[start:]):
+                start = len(calls())
+                yield (
+                    f"Please use get_customer with my customer ID {customer_id} to confirm "
+                    "that from the server rather than from memory."
+                )
+            returning = called_since("get_customer", start)
+            test.assertTrue(returning["result"]["found"])
+            test.assertFalse(returning["result"]["can_order_real"])
+            test.assertIsNone(returning["result"]["active_real_order"])
 
             test.assertEqual({call["tool"] for call in calls()}, set(TOOL_ARGUMENTS))
             test.assertEqual(sum(call["tool"] == "register_customer" for call in calls()), 1)
